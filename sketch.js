@@ -4,6 +4,10 @@ let maxAsteroids = 10;
 let stars = [];
 let maxStars = 1000;
 let hyperspaceJump = false;
+let hsRed = 255;
+let hsGreen = 255;
+let hsBlue = 255;
+let hsCount = 0;
 
 let eventTimer = 1;
 let eventRate = 60;
@@ -33,6 +37,7 @@ function preload()
 function setup()
 {
   createCanvas(800, 600, WEBGL);
+  perspective();
   winFill = color(25, 25, 25);
   createAsteroid(random(-width/2, width/2), random(-height/2, height/2));
   createStarfield();
@@ -50,7 +55,7 @@ function createStarfield()
 {
   for (let s = 0; s < maxStars; s++)
   {
-    stars.push(new Particle(225, 225, 225, random(1, 6), 30, createVector(random(-width, width), random(-height, height), random(-2000, -500)), createVector(0,0,0.1), createVector(0.05,0.01,0.1), 1, 0));
+    stars.push(new Particle(225, 225, 225, random(1, 6), 30, createVector(random(-width*1.5, width*1.5), random(-height * 1.5, height * 1.5), random(-2000, -1000)), createVector(0,0,0.1), createVector(0.05,0.01,0.1), 1, 0));
   }
 }
 
@@ -67,15 +72,28 @@ function draw()
 
     if (hyperspaceJump)
     {
-      stars[s].movement();
-      stars[s].changeSpeed();
-      stars[s].changeHeight(2);
-      stars[s].changeColor(225, 225, 255);
+      //stars[s].movement();
+      //stars[s].changeSpeed();
+      stars[s].changeDepth(10);
 
+       stars[s].changeColor(hsRed, hsGreen, hsBlue);
+       
       //spaceFXRotate += spaceFXRotate;
-      if (stars[s].isDead())
+      if (stars[s].pDepth > 3 * height)
       {
         stars.splice(s, 1);
+      }
+      if ((hsCount % 1000) == 0)
+      {
+        //console.log(hsCount%1000);
+        hsRed = int(random(0, 255));
+        hsGreen = int(random(0, 255));
+        hsBlue = int(random(0, 255));
+        hsCount = 0;
+      }
+      else
+      {
+        hsCount++;
       }
     }
   }
@@ -89,6 +107,10 @@ function draw()
     asteroids.splice(0, asteroids.length);
     ship = 0;
     shipSpawned = false;
+    hsBlue = 255;
+    hsGreen = 255;
+    hsRed = 255;
+    hsCount = 0;
   }
   if (!hyperspaceJump)
   {
@@ -96,6 +118,8 @@ function draw()
     {
       asteroids[a].display();
       asteroids[a].movement();
+      asteroids[a].changeSize(asteroids[a].speed.z)
+      asteroids[a].moveUp();
       if(asteroids[a].isDead())
       {
         asteroids.splice(a, 1);
@@ -146,19 +170,9 @@ function draw()
   }
   fill(255, 255, 255, 25);
   translate(0,0,1);
-  box(width, height, 5);
-  fill(25);
+  //box(width, height, 5);
+  fill(155, 155, 155, 255);
   stroke(255);
-  beginShape();
-    vertex(-width/2, height/4, 5);
-    vertex(-width/2, height/2, 5);
-    vertex(0,  height/2, 5);
-  endShape(CLOSE);
-  beginShape();
-    vertex(width/2, height/4, 5);
-    vertex(width/2, height/2, 5);
-    vertex(0, height/2, 5);
-  endShape(CLOSE);
   beginShape();
     vertex(width/2, -height/4, 5);
     vertex(width/2, -height/2, 5);
@@ -169,6 +183,18 @@ function draw()
     vertex(-width/2, -height/2, 5);
     vertex(0, -height/2, 5);
   endShape(CLOSE);
+  noLights();
+  ambientLight(0,0,0);
+  beginShape();
+  vertex(-width/2, height/4, 5);
+  vertex(-width/2, height/2, 5);
+  vertex(0,  height/2, 5);
+endShape(CLOSE);
+beginShape();
+  vertex(width/2, height/4, 5);
+  vertex(width/2, height/2, 5);
+  vertex(0, height/2, 5);
+endShape(CLOSE);
   pop();
 
   if ((eventTimer % eventRate) == 0)
@@ -208,9 +234,9 @@ function asteroidSpawner()
 
 function shipSpawner()
 {
-  //ship = new Particle(125, 125, 125, 50, 0, createVector(random(width), random(height), -10), createVector(2*random(-1, 1), 2*random(-1, 1), 2*(random(-1,1))), createVector(0, 0, 0), 3, shipImg);
-  //shipSpawned = true;
-  //console.log("Ship Should appear");
+  ship = new Particle(125, 125, 125, 50, 0, createVector(random(width), random(height), -10), createVector(2*random(-1, 1), 2*random(-1, 1), 2*(random(-1,1))), createVector(0, 0, 0), 3, shipImg);
+  shipSpawned = true;
+  console.log("Ship Should appear");
 }
 
 function eventHandling()
@@ -219,15 +245,15 @@ function eventHandling()
   {
     case 1:
     case 2:
-      if (!shipSpawned)
+      /*if (!shipSpawned)
       {
       shipSpawner();
-      }
+      }*/
       resetEvent();
       break;
     case 3:
-      //hyperspaceJump = true;
-      //break;
+      hyperspaceJump = true;
+      break;
     case 4:
     case 5:
     case 6:
@@ -328,7 +354,7 @@ class Particle
     {
       push();
       translate(this.position.x, this.position.y, this.position.z);
-      rotate(radians(random(360)));
+      //rotate(radians(random(360)));
       box(this.pWidth, this.pHeight, this.pDepth);
       pop();
     }
@@ -337,18 +363,21 @@ class Particle
       push();
       translate(this.position.x, this.position.y, this.position.z);
       rotate(radians(random(360)));
-      sphere(this.pDepth);
+      sphere(this.pDepth, 24, 24);
       pop();
     }
     else if (this.shape == 3)
     {
       push();
+      lights();
+      ambientLight(255,255,255);
+      emissiveMaterial(155,155,155,255);
       angleMode(DEGREES);
-      imageMode(CENTER);
-      translate(this.position.x, this.position.y)
+      translate(this.position.x, this.position.y, this.position.z);
       rotate(this.speed.heading() + 90);
       //console.log(this.speed.heading());
-      image(this.pImage, 0, 0, this.pWidth, this.pHeight);
+      texture(this.pImage);
+      box(100,100,100);
       pop();
     }
   }
@@ -360,23 +389,46 @@ class Particle
     this.pBlue = lerp(this.pBlue, newBlue, 0.5);
   }
 
+  changeSize(newSize)
+  {
+    this.changeHeight(newSize);
+    this.changeWidth(newSize);
+    this.changeDepth(newSize);
+  }
+
   changeHeight(newSize)
   {
     this.pHeight = lerp(this.pHeight, this.pHeight + newSize, 0.5);
-    //this.pWidth = lerp(this.pWidth, this.pWidth + newSize, 0.5);
-    //this.pDepth = lerp(this.pDepth, this.pDepth + newSize, 0.5);
+  }
+
+  changeWidth(newSize)
+  {
+    this.pWidth = lerp(this.pWidth, this.pWidth + newSize, 0.5);
+  }
+
+  changeDepth(newSize)
+  {
+    this.pDepth = lerp(this.pDepth, this.pDepth + newSize, 0.5);
   }
 
   changeSpeed()
   {
     this.speed.add(this.acceleration);
   }
+  
+  moveUp()
+  {
+    if (this.speed.z != 0)
+    {
+      this.speed.add(createVector(0,this.speed.z/10,0));
+    }
+  }
 
   isDead()
   {
-    if (this.position.x > width + 25 || this.position.x < -width - 25|| this.position.y > height + 25|| this.position.y < -height -25 || this.position.z < -2000 || this.position.z > 0)
+    if (this.position.x > width + 100 || this.position.x < -width - 100|| this.position.y > height + 100|| this.position.y < -height -100 || this.position.z < -999 || this.position.z > -1*this.pDepth)
     {
-      console.log("Asteroid was at: " + this.position.x + " depth");
+      //console.log("Asteroid was at: " + this.position.x + " depth");
       return true;
     }
     return false;
