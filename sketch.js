@@ -1,5 +1,36 @@
+function detectMax() {
+  try {
+    /*
+      For references to all functions attached to window.max object read the
+      "Communicating with Max from within jweb" document from Max documentation.
+    */
+    window.max.outlet('Hello', 0);
+    return true;
+  }
+  catch(e) {
+    console.log('Max, where are you?');
+  }
+  return false;
+}
+
+let s = function(p) {
+
+  // let's test and memorize if the sketch is loaded inside Max jweb object
+  const maxIsDetected = detectMax();
+
+  /*
+    Use windowResized function to adopt canvas size to the current size of
+    the browser. It is particularly important when sketch is loaded inside
+    the Max jweb object, which may be dynamically resized by the user.
+  */
+  p.windowResized = function() {
+    p.resizeCanvas(innerWidth, innerHeight);
+  }
+
+
 let asteroids = [];
 let maxAsteroids = 10;
+let asTexture;
 
 let stars = [];
 let maxStars = 1000;
@@ -11,60 +42,66 @@ let hsCount = 0;
 
 let eventTimer = 1;
 let eventRate = 60;
-let eventNum = 10; //around half should be asteroid or other visual spawn.
+let eventNum = 50; //around half should be asteroid or other visual spawn.
 let eventSelector = 0;
 
 let redAlert = false;
-let redAlertSound;
+//let redAlertSound;
 let yellowAlert = false;
-let yelAlertSound;
+//let yelAlertSound;
 let greenAlert = false;
-let greenAletSound;
+//let greenAletSound;
 
 let lightFlash = false;
 let lightTimer = 0;
-let winFill = 0;
+//let winFill = 0;
 
-let ship = 0;
+let ship = [];
 let shipSpawned = false;
 let shipImg = 0;
+let shipMod;
 
-function preload()
+p.preload = function ()
 {
-  redAlertSound = loadSound('assets/redalert.mp3');
+  //redAlertSound = p.loadSound('assets/redalert.mp3');
+  shipMod = p.loadModel('assets/shipTest.obj', p.true);
 }
 
-function setup()
+p.setup = function()
 {
-  createCanvas(800, 600, WEBGL);
-  perspective();
-  winFill = color(25, 25, 25);
-  createAsteroid(random(-width/2, width/2), random(-height/2, height/2));
-  createStarfield();
-  eventSelector = int(random(1, eventNum));
-  shipImg = loadImage('assets/paintShip.png');
-  //redAlertSound.volume(0.5);
+  p.createCanvas(innerWidth, innerHeight, p.WEBGL);
+  if(maxIsDetected) {
+    // remove unwanted scroll bar
+    document.getElementsByTagName('body')[0].style.overflow = 'hidden';
+  }
+  p.perspective();
+  winFill = p.color(25, 25, 25);
+  p.createAsteroid(p.random(-p.width/2, p.width/2), p.random(-p.height/2, p.height/2));
+  p.createStarfield();
+  eventSelector = p.int(p.random(1, eventNum));
+  shipImg = p.loadImage('assets/paintShip.png');
+  asTexture = p.loadImage('assets/asteroidTexture.png');
 }
 
-function createAsteroid(posX, posY)
+p.createAsteroid = function (posX, posY)
 {
-  asteroids.push(new Particle(130, 120, 50, random(width/60, width/8), 0, createVector(posX, posY, random(-1000, -750)), createVector(random(-1, 1), random(-1, 1), random(-1, 1)), createVector(0, 0, 0), 2, 0));
+  asteroids.push(new Particle(130, 120, 50, p.random(p.width/60, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 2, asTexture));
 }
 
-function createStarfield()
+p.createStarfield = function ()
 {
   for (let s = 0; s < maxStars; s++)
   {
-    stars.push(new Particle(225, 225, 225, random(1, 6), 30, createVector(random(-width*1.5, width*1.5), random(-height * 1.5, height * 1.5), random(-2000, -1000)), createVector(0,0,0.1), createVector(0.05,0.01,0.1), 1, 0));
+    stars.push(new Particle(190 + p.random(60), 190 + p.random(60), 190 + p.random(60), p.random(1, 6), 30, p.createVector(p.random(-p.width*1.5, p.width*1.5), p.random(-p.height * 1.5, p.height * 1.5), p.random(-2000, -1000)), p.createVector(0,0,0.1), p.createVector(0.05,0.01,0.1), 1, 0));
   }
 }
 
-function draw()
+p.draw = function()
 {
   if(!hyperspaceJump)
-  {background(0);}
+  {p.background(0);}
   else
-  {background(25, 0, 50);}
+  {p.background(25, 0, 50);}
 
   for(let s = 0; s < stars.length; s++)
   {
@@ -79,16 +116,16 @@ function draw()
        stars[s].changeColor(hsRed, hsGreen, hsBlue);
        
       //spaceFXRotate += spaceFXRotate;
-      if (stars[s].pDepth > 3 * height)
+      if (stars[s].pDepth > 2 * p.height)
       {
         stars.splice(s, 1);
       }
       if ((hsCount % 1000) == 0)
       {
         //console.log(hsCount%1000);
-        hsRed = int(random(0, 255));
-        hsGreen = int(random(0, 255));
-        hsBlue = int(random(0, 255));
+        hsRed = p.int(p.random(0, 255));
+        hsGreen = p.int(p.random(0, 255));
+        hsBlue = p.int(p.random(0, 255));
         hsCount = 0;
       }
       else
@@ -100,13 +137,13 @@ function draw()
 
   if (stars.length <= 0)
   {
-    createStarfield();
-    resetEvent();
+    //turn off jump sound.
+    p.createStarfield();
+    p.resetEvent();
     hyperspaceJump = false;
     spaceFXRotate = 45;
     asteroids.splice(0, asteroids.length);
-    ship = 0;
-    shipSpawned = false;
+    ship.splice(0, ship.length);
     hsBlue = 255;
     hsGreen = 255;
     hsRed = 255;
@@ -125,99 +162,99 @@ function draw()
         asteroids.splice(a, 1);
       }
     }
-    if (shipSpawned)
+    if (ship.length > 0)
     {
-      ship.display();
-      ship.movement();
-      if (ship.isDead())
+      for (let a = 0; a < ship.length; a++)
       {
-        ship = 0;
-        shipSpawned = false;
+        ship[a].display();
+        ship[a].movement();
+        if (ship[a].isDead())
+        {
+          //console.log("Ship Out of Bounds");
+          ship.splice(a, 1);
+        }
       }
     }
   }
 
   //draw "window"
-  push();
-  shininess(50);
-  specularMaterial(220);
+  p.push();
+  p.shininess(50);
+  p.specularMaterial(220);
   if (redAlert && lightFlash)
   {
     //lights();
-    ambientLight(255, 0, 0);
+    p.ambientLight(255, 0, 0);
     //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
-    redAlertSound.play();
+    //redAlertSound.play();
     //console.log("Red Light Flash");
     //winFill = lerpColor(winFill, color(255, 100, 100), 0.5);
   }
   else if (yellowAlert && lightFlash)
   {
-    ambientLight(255, 204, 0);
+    p.ambientLight(255, 204, 0);
     //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
     //winFill = lerpColor(winFill, color(255, 204, 0), 0.5);
   }
   else if (greenAlert && lightFlash)
   {
-    ambientLight(0, 255, 0);
+    p.ambientLight(0, 255, 0);
     //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
     //winFill = lerpColor(winFill, color(0, 255, 0), 0.5);
   }
   else
   {
     //noLights();
-    redAlertSound.stop();
+    //redAlertSound.stop();
     //winFill = lerpColor(winFill, color(25, 25, 25), 0.5);
   }
-  fill(255, 255, 255, 25);
-  translate(0,0,1);
+  p.fill(255, 255, 255, 25);
+  p.translate(0,0,1);
   //box(width, height, 5);
-  fill(155, 155, 155, 255);
-  stroke(255);
-  beginShape();
-    vertex(width/2, -height/4, 5);
-    vertex(width/2, -height/2, 5);
-    vertex(0, -height/2, 5);
-  endShape(CLOSE);
-  beginShape();
-    vertex(-width/2, -height / 4, 5);
-    vertex(-width/2, -height/2, 5);
-    vertex(0, -height/2, 5);
-  endShape(CLOSE);
-  noLights();
-  ambientLight(0,0,0);
-  beginShape();
-  vertex(-width/2, height/4, 5);
-  vertex(-width/2, height/2, 5);
-  vertex(0,  height/2, 5);
-endShape(CLOSE);
-beginShape();
-  vertex(width/2, height/4, 5);
-  vertex(width/2, height/2, 5);
-  vertex(0, height/2, 5);
-endShape(CLOSE);
-  pop();
+  p.fill(155, 155, 155, 255);
+  p.stroke(255);
+  p.beginShape();
+  p.vertex(p.width/2, -p.height/4, 5);
+  p.vertex(p.width/2, -p.height/2, 5);
+  p.vertex(0, -p.height/2, 5);
+  p.endShape(p.CLOSE);
+  p.beginShape();
+  p.vertex(-p.width/2, -p.height / 4, 5);
+  p.vertex(-p.width/2, -p.height/2, 5);
+  p.vertex(0, -p.height/2, 5);
+  p.endShape(p.CLOSE);
+  p.noLights();
+  p.ambientLight(0,0,0);
+  p.beginShape();
+  p.vertex(-p.width/2, p.height/4, 5);
+  p.vertex(-p.width/2, p.height/2, 5);
+  p.vertex(0,  p.height/2, 5);
+  p.endShape(p.CLOSE);
+  p.beginShape();
+  p.vertex(p.width/2, p.height/4, 5);
+  p.vertex(p.width/2, p.height/2, 5);
+  p.vertex(0, p.height/2, 5);
+  p.endShape(p.CLOSE);
+  p.pop();
 
   if ((eventTimer % eventRate) == 0)
   {
-    textSize(20);
-    eventHandling();
+    p.textSize(20);
+    p.eventHandling();
     if (redAlert)
     {
       console.log("Red Alert!");
-      //text("Red Alert!", width/2, height/3);
-      //text("Click Mouse!", width/2, height/2);
+
     }
     if (yellowAlert)
     {
       console.log("Yellow Alert!");
-      //text("Yellow Alert!", width/2, height/3);
-      //text("Press Y!", width/2, height/2);
+
     }
     if (greenAlert)
     {
       console.log("Green Alert?");
-      // text("Green Alert?", width/2, height/3);
-      //text("Press G!", width/2, height/2);
+
     }
   }
   else
@@ -226,97 +263,129 @@ endShape(CLOSE);
   }
 }
 
-function asteroidSpawner()
+p.asteroidSpawner = function()
 {
   if(asteroids.length < maxAsteroids)
-  {createAsteroid(random(width - 50), random(height - 50));}
+  {p.createAsteroid(p.random(p.width - 50), p.random(p.height - 50));}
 }
 
-function shipSpawner()
+p.shipSpawner = function()
 {
-  ship = new Particle(125, 125, 125, 50, 0, createVector(random(width), random(height), -10), createVector(2*random(-1, 1), 2*random(-1, 1), 2*(random(-1,1))), createVector(0, 0, 0), 3, shipImg);
-  shipSpawned = true;
-  console.log("Ship Should appear");
+  ship.push(new Particle(125, 125, 125, 50, 0, p.createVector(p.random(-0.75*p.width, 0.75*p.width), p.random(-0.75*p.height, 0.75*p.height), -400), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 3, shipImg));
+  //console.log("Ship Should appear");
 }
 
-function eventHandling()
+p.eventHandling = function ()
 {
   switch (eventSelector)
   {
-    case 1:
-    case 2:
-      /*if (!shipSpawned)
-      {
-      shipSpawner();
-      }*/
-      resetEvent();
-      break;
-    case 3:
-      hyperspaceJump = true;
-      break;
-    case 4:
     case 5:
+      //p.shipSpawner(); make a space station model
+      p.resetEvent();
+      break;
     case 6:
-      asteroidSpawner();
-      resetEvent();
+      //p.shipSpawner(); add a new ship model to spawn
+      p.resetEvent();
       break;
     case 7:
-      lightTimer++;
-      greenAlert = true;
-      if (lightTimer >= 30)
-      { 
-        lightTimer = 0;
-        lightFlash = !lightFlash;
-      }
+      p.shipSpawner();
+      p.resetEvent();
       break;
     case 8:
+      hyperspaceJump = true;
+      //insert call for hyperspace jump sound and an initial volume
+      break;
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+      p.asteroidSpawner();
+      p.resetEvent();
+      break;
+    case 17:
+      //give an announcment or message, then tur off.
       lightTimer++;
-      redAlert = true;
+      if (maxIsDetected && !greenAlert)
+      {window.max.outlet('Alert', 'Green', 65);}
+      greenAlert = true;
+  
       if (lightTimer >= 30)
       { 
         lightTimer = 0;
         lightFlash = !lightFlash;
       }
       break;
-    case 9:
+    case 18:
+      //add a major error and instructins on how to fix it.
       lightTimer++;
-      yellowAlert = true;
+      if (maxIsDetected && !redAlert)
+      {window.max.outlet('Alert', 'Red', 100);}
+      redAlert = true;
+
       if (lightTimer >= 30)
       { 
         lightTimer = 0;
         lightFlash = !lightFlash;
       }
+      break;
+    case 19:
+      //add a minor error and instrctions on how to fix it.
+      lightTimer++;
+      if (maxIsDetected && !yellowAlert)
+      {window.max.outlet('Alert', 'Yellow', 80);}
+      yellowAlert = true;
+
+      if (lightTimer >= 30)
+      { 
+        lightTimer = 0;
+        lightFlash = !lightFlash;
+      }
+      break;
+    case 20:
+      //Play a random ambient noise
+      p.resetEvent();
+      break;
+    case 21:
+      //Spawn a Planet in the background
+      p.resetEvent();
       break;
     default:
-      resetEvent();
+      p.resetEvent();
       break;
   }
 }
 
-function keyReleased()
+p.keyReleased = function()
 {
-  if ((key == 'y' || key == 'Y') && yellowAlert)
+  if ((p.key == 'y' || p.key == 'Y') && yellowAlert)
   {
-    resetEvent();
+    if (maxIsDetected)
+    {window.max.outlet('Alert', 'none', 0);}
+    p.resetEvent();
   }
-  else if ((key == 'g' || key == 'G') && greenAlert)
+  else if ((p.key == 'g' || p.key == 'G') && greenAlert)
   {
-    resetEvent();
+    if (maxIsDetected)
+    {window.max.outlet('Alert', 'none', 0);}
+    p.resetEvent();
   }
 }
 
-function mouseClicked()
+p.mouseClicked = function ()
 {
   if ((eventTimer % eventRate) == 0 && redAlert)
   {
-    resetEvent();
+    if (maxIsDetected)
+    {window.max.outlet('Alert', 'none', 0);}
+    p.resetEvent();
   }
 }
 
-function resetEvent()
+p.resetEvent = function ()
 {
   eventTimer = 1;
-  eventSelector = int(random(eventNum));
+  eventSelector = p.int(p.random(eventNum));
   lightTimer = 0;
   redAlert = false;
   yellowAlert = false;
@@ -340,6 +409,8 @@ class Particle
     this.angle = pAngle;
     this.shape = pShape; //an int representing how to display it. 1 for rect, 2 for ellipse, 3 for an image.
     this.pImage = pImage;
+    this.rotVal = p.random(-2, 2);
+    this.rotChange = p.random(-0.1, 0.5);
     /*if (this.shape == 3)
     {
       console.log("A ship was created!");
@@ -348,45 +419,45 @@ class Particle
 
   display()
   {
-    noStroke();
-    fill(this.pRed, this.pGreen, this.pBlue);
+    p.noStroke();
+    p.fill(this.pRed, this.pGreen, this.pBlue);
     if (this.shape == 1)
     {
-      push();
-      translate(this.position.x, this.position.y, this.position.z);
+      p.push();
+      p.translate(this.position.x, this.position.y, this.position.z);
       //rotate(radians(random(360)));
-      box(this.pWidth, this.pHeight, this.pDepth);
-      pop();
+      p.box(this.pWidth, this.pHeight, this.pDepth);
+      p.pop();
     }
     else if (this.shape == 2)
     {
-      push();
-      translate(this.position.x, this.position.y, this.position.z);
-      rotate(radians(random(360)));
-      sphere(this.pDepth, 24, 24);
-      pop();
+      p.push();
+      p.translate(this.position.x, this.position.y, this.position.z);
+      p.rotate(p.radians(this.rotVal * p.PI));
+      p.texture(asTexture);
+      p.sphere(this.pDepth, 24, 24);
+      p.pop();
     }
     else if (this.shape == 3)
     {
-      push();
-      lights();
-      ambientLight(255,255,255);
-      emissiveMaterial(155,155,155,255);
-      angleMode(DEGREES);
-      translate(this.position.x, this.position.y, this.position.z);
-      rotate(this.speed.heading() + 90);
+      p.push();
+      p.lights();
+      p.ambientLight(155, 155, 155);
+      p.translate(this.position.x, this.position.y, this.position.z);
+      p.rotate(this.speed.heading());
       //console.log(this.speed.heading());
-      texture(this.pImage);
-      box(100,100,100);
-      pop();
+      //p.texture(this.pImage);
+      p.model(shipMod);
+      p.pop();
     }
+    this.rotVal += this.rotChange;
   }
 
   changeColor(newRed, newGreen, newBlue)
   {
-    this.pRed = lerp(this.pRed, newRed, 0.5);
-    this.pGreen = lerp(this.pGreen, newGreen, 0.5);
-    this.pBlue = lerp(this.pBlue, newBlue, 0.5);
+    this.pRed = p.lerp(this.pRed, newRed, 0.5);
+    this.pGreen = p.lerp(this.pGreen, newGreen, 0.5);
+    this.pBlue = p.lerp(this.pBlue, newBlue, 0.5);
   }
 
   changeSize(newSize)
@@ -398,17 +469,17 @@ class Particle
 
   changeHeight(newSize)
   {
-    this.pHeight = lerp(this.pHeight, this.pHeight + newSize, 0.5);
+    this.pHeight = p.lerp(this.pHeight, this.pHeight + newSize, 0.5);
   }
 
   changeWidth(newSize)
   {
-    this.pWidth = lerp(this.pWidth, this.pWidth + newSize, 0.5);
+    this.pWidth = p.lerp(this.pWidth, this.pWidth + newSize, 0.5);
   }
 
   changeDepth(newSize)
   {
-    this.pDepth = lerp(this.pDepth, this.pDepth + newSize, 0.5);
+    this.pDepth = p.lerp(this.pDepth, this.pDepth + newSize, 0.5);
   }
 
   changeSpeed()
@@ -420,13 +491,13 @@ class Particle
   {
     if (this.speed.z != 0)
     {
-      this.speed.add(createVector(0,this.speed.z/10,0));
+      this.speed.add(p.createVector(0,this.speed.z/10,0));
     }
   }
 
   isDead()
   {
-    if (this.position.x > width + 100 || this.position.x < -width - 100|| this.position.y > height + 100|| this.position.y < -height -100 || this.position.z < -999 || this.position.z > -1*this.pDepth)
+    if (this.position.x > p.width + 100 || this.position.x < -p.width - 100|| this.position.y > p.height + 100|| this.position.y < -p.height -100 || this.position.z < -999 || this.position.z > -1-this.pDepth)
     {
       //console.log("Asteroid was at: " + this.position.x + " depth");
       return true;
@@ -439,3 +510,8 @@ class Particle
     this.position.add(this.speed);
   }
 }
+
+
+}
+
+let myp5 = new p5(s);
