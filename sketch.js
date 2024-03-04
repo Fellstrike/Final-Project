@@ -31,6 +31,7 @@ let s = function(p) {
 let asteroids = [];
 let maxAsteroids = 10;
 let asTexture;
+let plTexture;
 
 let stars = [];
 let maxStars = 1000;
@@ -57,14 +58,14 @@ let lightTimer = 0;
 //let winFill = 0;
 
 let ship = [];
-let shipSpawned = false;
-let shipImg = 0;
+let shipMod2;
 let shipMod;
 
 p.preload = function ()
 {
   //redAlertSound = p.loadSound('assets/redalert.mp3');
   shipMod = p.loadModel('assets/shipTest.obj', p.true);
+  shipMod2 = p.loadModel('assets/newscene.obj', p.true);
 }
 
 p.setup = function()
@@ -79,13 +80,18 @@ p.setup = function()
   p.createAsteroid(p.random(-p.width/2, p.width/2), p.random(-p.height/2, p.height/2));
   p.createStarfield();
   eventSelector = p.int(p.random(1, eventNum));
-  shipImg = p.loadImage('assets/paintShip.png');
   asTexture = p.loadImage('assets/asteroidTexture.png');
+  plTexture = p.loadImage('assets/planetTexture.png');
+}
+
+p.createPlanet = function (posX, posY)
+{
+  asteroids.push(new Particle(130, 120, 50, p.random(p.width/100, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-0.1, 0.1), p.random(-0.1, 0.1), p.random(-0.1, 0.1)), p.createVector(0, 0, 0), 2, 2));
 }
 
 p.createAsteroid = function (posX, posY)
 {
-  asteroids.push(new Particle(130, 120, 50, p.random(p.width/60, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 2, asTexture));
+  asteroids.push(new Particle(130, 120, 50, p.random(p.width/60, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 2, 1));
 }
 
 p.createStarfield = function ()
@@ -111,7 +117,7 @@ p.draw = function()
     {
       //stars[s].movement();
       //stars[s].changeSpeed();
-      stars[s].changeDepth(10);
+      stars[s].changeDepth(8);
 
        stars[s].changeColor(hsRed, hsGreen, hsBlue);
        
@@ -168,8 +174,10 @@ p.draw = function()
       {
         ship[a].display();
         ship[a].movement();
+        ship[a].changeSpeed();
+        //make a random number to see if the ship jumps early
         if (ship[a].isDead())
-        {
+        { //code to make a flas hbefore the ship disapears
           //console.log("Ship Out of Bounds");
           ship.splice(a, 1);
         }
@@ -269,9 +277,10 @@ p.asteroidSpawner = function()
   {p.createAsteroid(p.random(p.width - 50), p.random(p.height - 50));}
 }
 
-p.shipSpawner = function()
+p.shipSpawner = function(shModel)
 {
-  ship.push(new Particle(125, 125, 125, 50, 0, p.createVector(p.random(-0.75*p.width, 0.75*p.width), p.random(-0.75*p.height, 0.75*p.height), -400), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 3, shipImg));
+  //ship.push(new Particle(p.random(255), p.random(255), p.random(255), 0, 0, p.createVector(0, 0, p.random(-1000, -300)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 3, shModel));
+  ship.push(new Particle(p.random(255), p.random(255), p.random(255), 0, 0, p.createVector(p.random(-0.75*p.width, 0.75*p.width), p.random(-0.75*p.height, 0.75*p.height), p.random(-1000, -300)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), 3, shModel));
   //console.log("Ship Should appear");
 }
 
@@ -284,11 +293,11 @@ p.eventHandling = function ()
       p.resetEvent();
       break;
     case 6:
-      //p.shipSpawner(); add a new ship model to spawn
+      p.shipSpawner(shipMod2);
       p.resetEvent();
       break;
     case 7:
-      p.shipSpawner();
+      p.shipSpawner(shipMod);
       p.resetEvent();
       break;
     case 8:
@@ -347,7 +356,7 @@ p.eventHandling = function ()
       p.resetEvent();
       break;
     case 21:
-      //Spawn a Planet in the background
+      p.createPlanet();
       p.resetEvent();
       break;
     default:
@@ -369,6 +378,26 @@ p.keyReleased = function()
     if (maxIsDetected)
     {window.max.outlet('Alert', 'none', 0);}
     p.resetEvent();
+  }
+  else if ((p.key == 's' || p.key == 'S'))
+  {
+    eventSelector = 7;
+  }
+  else if ((p.key == 'd' || p.key == 'D'))
+  {
+    eventSelector = 6;
+  }
+  else if ((p.key == 'a' || p.key == 'A'))
+  {
+    eventSelector = 15;
+  }
+  else if (p.key == 'j' || p.key == 'J')
+  {
+    eventSelector = 8;
+  }
+  else if (p.key == 'p' || p.key == 'P')
+  {
+    eventSelector = 21;
   }
 }
 
@@ -402,7 +431,7 @@ class Particle
     this.pDepth = pSize;
     this.position = pPos;
     this.speed = pVelo;
-    this.acceleration = pAccel;
+    this.acceleration = pAccel.mult(p.random(-0.1, 0.75));
     this.pRed = pRed;
     this.pGreen = pGreen;
     this.pBlue = pBlue;
@@ -425,7 +454,6 @@ class Particle
     {
       p.push();
       p.translate(this.position.x, this.position.y, this.position.z);
-      //rotate(radians(random(360)));
       p.box(this.pWidth, this.pHeight, this.pDepth);
       p.pop();
     }
@@ -434,7 +462,12 @@ class Particle
       p.push();
       p.translate(this.position.x, this.position.y, this.position.z);
       p.rotate(p.radians(this.rotVal * p.PI));
-      p.texture(asTexture);
+      if (this.pImage == 1)
+      {p.texture(asTexture);}
+      else if (this.pImage == 2)
+      {
+        p.texture(plTexture);
+      }
       p.sphere(this.pDepth, 24, 24);
       p.pop();
     }
@@ -444,10 +477,10 @@ class Particle
       p.lights();
       p.ambientLight(155, 155, 155);
       p.translate(this.position.x, this.position.y, this.position.z);
+      //p.rotateX();
       p.rotate(this.speed.heading());
-      //console.log(this.speed.heading());
-      //p.texture(this.pImage);
-      p.model(shipMod);
+      //p.rotateZ(90);
+      p.model(this.pImage);
       p.pop();
     }
     this.rotVal += this.rotChange;
