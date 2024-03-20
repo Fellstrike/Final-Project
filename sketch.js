@@ -30,6 +30,7 @@ let s = function(p) {
 
 let asteroids = [];
 let maxAsteroids = 10;
+let planetOn = false;
 let asTexture;
 let plTexture;
 
@@ -45,6 +46,10 @@ let eventTimer = 1;
 let eventRate = 60;
 let eventNum = 50; //around half should be asteroid or other visual spawn.
 let eventSelector = 0;
+let stepCount = 0;
+let stepTimer = 0;
+let maxSteps = 0;
+let footstepPlay = false;
 
 let redAlert = false;
 //let redAlertSound;
@@ -70,6 +75,8 @@ p.preload = function ()
 
 p.setup = function()
 {
+  if (maxIsDetected)
+    {window.max.outlet('AmbGain', 0.75);}
   p.createCanvas(innerWidth, innerHeight, p.WEBGL);
   if(maxIsDetected) {
     // remove unwanted scroll bar
@@ -80,18 +87,23 @@ p.setup = function()
   p.createAsteroid(p.random(-p.width/2, p.width/2), p.random(-p.height/2, p.height/2));
   p.createStarfield();
   eventSelector = p.int(p.random(1, eventNum));
+
   asTexture = p.loadImage('assets/asteroidTexture.png');
   plTexture = p.loadImage('assets/planetTexture.png');
 }
 
 p.createPlanet = function (posX, posY)
 {
-  asteroids.push(new Particle(130, 120, 50, p.random(p.width/100, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-0.1, 0.1), p.random(-0.1, 0.1), p.random(-0.1, 0.1)), p.createVector(0, 0, 0), 2, 2));
+  if (!planetOn)
+  {
+    asteroids.push(new Particle(p.random(0, 255), p.random(0, 255), p.random(0, 255), p.random(p.width/100, p.width/8), 0, p.createVector(p.random(-p.width, p.width), p.random(-p.height, p.height), p.random(-1000, -750)), p.createVector(p.random(-0.01, 0.01), p.random(-0.01, 0.01), p.random(-0.01, 0.01)), p.createVector(0, 0, 0), 2, 2));
+    planetOn = true;
+  }
 }
 
 p.createAsteroid = function (posX, posY)
 {
-  asteroids.push(new Particle(130, 120, 50, p.random(p.width/60, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 2, 1));
+  asteroids.push(new Particle(200, 200, 200, p.random(p.width/60, p.width/8), 0, p.createVector(posX, posY, p.random(-1000, -750)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 2, 1));
 }
 
 p.createStarfield = function ()
@@ -122,7 +134,7 @@ p.draw = function()
        stars[s].changeColor(hsRed, hsGreen, hsBlue);
        
       //spaceFXRotate += spaceFXRotate;
-      if (stars[s].pDepth > 2 * p.height)
+      if (stars[s].pDepth > 1.5 * p.height)
       {
         stars.splice(s, 1);
       }
@@ -143,6 +155,8 @@ p.draw = function()
 
   if (stars.length <= 0)
   {
+    if (maxIsDetected)
+    {window.max.outlet('Hello', 0);}
     //turn off jump sound.
     p.createStarfield();
     p.resetEvent();
@@ -154,6 +168,7 @@ p.draw = function()
     hsGreen = 255;
     hsRed = 255;
     hsCount = 0;
+    planetOn = false;
   }
   if (!hyperspaceJump)
   {
@@ -165,6 +180,11 @@ p.draw = function()
       asteroids[a].moveUp();
       if(asteroids[a].isDead())
       {
+        if (asteroids[a].speed.z > 0)
+        {
+          if (maxIsDetected)
+          {window.max.outlet('Noise', 50, 100, 0.5, 0.4, -0.1, 500, 500, 100);}
+        }
         asteroids.splice(a, 1);
       }
     }
@@ -183,39 +203,32 @@ p.draw = function()
         }
       }
     }
+    if (footstepPlay)
+    {
+      p.playStep();
+    }
   }
 
   //draw "window"
   p.push();
   p.shininess(50);
   p.specularMaterial(220);
-  if (redAlert && lightFlash)
+  if(lightFlash)
   {
-    //lights();
-    p.ambientLight(255, 0, 0);
-    //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
-    //redAlertSound.play();
-    //console.log("Red Light Flash");
-    //winFill = lerpColor(winFill, color(255, 100, 100), 0.5);
+    if (redAlert)
+    {
+      p.ambientLight(255, 0, 0);
+    }
+    else if (yellowAlert)
+    {
+      p.ambientLight(253, 255, 58);
+    }
+    else if (greenAlert)
+    {
+      p.ambientLight(0, 255, 0);
+    }
   }
-  else if (yellowAlert && lightFlash)
-  {
-    p.ambientLight(255, 204, 0);
-    //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
-    //winFill = lerpColor(winFill, color(255, 204, 0), 0.5);
-  }
-  else if (greenAlert && lightFlash)
-  {
-    p.ambientLight(0, 255, 0);
-    //spotLight(255, 0, 0, -width/3, -height/3, 5, 0, 0, -1);
-    //winFill = lerpColor(winFill, color(0, 255, 0), 0.5);
-  }
-  else
-  {
-    //noLights();
-    //redAlertSound.stop();
-    //winFill = lerpColor(winFill, color(25, 25, 25), 0.5);
-  }
+
   p.fill(255, 255, 255, 25);
   p.translate(0,0,1);
   //box(width, height, 5);
@@ -279,9 +292,7 @@ p.asteroidSpawner = function()
 
 p.shipSpawner = function(shModel)
 {
-  //ship.push(new Particle(p.random(255), p.random(255), p.random(255), 0, 0, p.createVector(0, 0, p.random(-1000, -300)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(0, 0, 0), 3, shModel));
   ship.push(new Particle(p.random(255), p.random(255), p.random(255), 0, 0, p.createVector(p.random(-0.75*p.width, 0.75*p.width), p.random(-0.75*p.height, 0.75*p.height), p.random(-1000, -300)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), p.createVector(p.random(-1, 1), p.random(-1, 1), p.random(-1, 1)), 3, shModel));
-  //console.log("Ship Should appear");
 }
 
 p.eventHandling = function ()
@@ -301,8 +312,12 @@ p.eventHandling = function ()
       p.resetEvent();
       break;
     case 8:
+      if (!hyperspaceJump)
+      {if (maxIsDetected)
+        {window.max.outlet('Jump', 1);}}
       hyperspaceJump = true;
-      //insert call for hyperspace jump sound and an initial volume
+      /*if (maxIsDetected)
+      {window.max.outlet('Jump', 1);}*/
       break;
     case 12:
     case 13:
@@ -313,12 +328,11 @@ p.eventHandling = function ()
       p.resetEvent();
       break;
     case 17:
-      //give an announcment or message, then tur off.
+      //give an announcment or message, then turn off.
       lightTimer++;
       if (maxIsDetected && !greenAlert)
-      {window.max.outlet('Alert', 'Green', 65);}
+      {window.max.outlet('Alert', 'Green', 0.5);}
       greenAlert = true;
-  
       if (lightTimer >= 30)
       { 
         lightTimer = 0;
@@ -329,7 +343,7 @@ p.eventHandling = function ()
       //add a major error and instructins on how to fix it.
       lightTimer++;
       if (maxIsDetected && !redAlert)
-      {window.max.outlet('Alert', 'Red', 100);}
+      {window.max.outlet('Alert', 'Red', 1);}
       redAlert = true;
 
       if (lightTimer >= 30)
@@ -342,7 +356,7 @@ p.eventHandling = function ()
       //add a minor error and instrctions on how to fix it.
       lightTimer++;
       if (maxIsDetected && !yellowAlert)
-      {window.max.outlet('Alert', 'Yellow', 80);}
+      {window.max.outlet('Alert', 'Yellow', 0.75);}
       yellowAlert = true;
 
       if (lightTimer >= 30)
@@ -351,17 +365,59 @@ p.eventHandling = function ()
         lightFlash = !lightFlash;
       }
       break;
-    case 20:
-      //Play a random ambient noise
+    case 20:    //Random Drop
+      if (maxIsDetected)
+      {window.max.outlet('Noise', 50, 60, 0.5, 0.4, 0.6, 500, 3500, 75);}
       p.resetEvent();
       break;
     case 21:
       p.createPlanet();
       p.resetEvent();
       break;
+    case 22: //footsteps
+      footstepPlay = true;
+      maxSteps = p.int(p.random(20, 500));
+      p.resetEvent();
+      break;
+    case 23:
+      if (maxIsDetected)
+      {window.max.outlet('Noise', 50, 100, 0.5, 0.4, -0.1, 500, 4500, 75);}
+      p.resetEvent();
+      break;
+    case 24:
+      if (maxIsDetected)
+      {window.max.outlet('Noise', 65, 88, 0.75, 0.6, 0.1, 500, 2500, 75);}
+      p.resetEvent();
+      break;
+    case 25:
+      if (maxIsDetected)
+      {window.max.outlet('Noise', 94.6, 42, 0.8, 0.9, 0.3, 500, 2500, 75);}
+      p.resetEvent();
+      break;
+    case 26:
+      if (maxIsDetected)
+      {window.max.outlet('Noise', 71.9, 32.13, 0.8, 0.9, 0.75, 500, 2500, 75);}
+      p.resetEvent();
+      break;
     default:
       p.resetEvent();
       break;
+  }
+}
+p.playStep = function()
+{
+  if ((stepTimer % 60) == 1)
+  {
+    stepCount++;
+    if (maxIsDetected)
+    {window.max.outlet('Noise', 74, 43.6, 0.2, 0.6, -0.2, 690, 1250, 55+(stepCount/maxSteps));}
+  }
+  stepTimer++;
+  if (stepCount >= maxSteps)
+  {
+    stepCount = 0;
+    stepTimer = 0;
+    footstepPlay = false;
   }
 }
 
@@ -399,6 +455,10 @@ p.keyReleased = function()
   {
     eventSelector = 21;
   }
+  else if (p.key == 'n' || p.key == 'N')
+  {
+    eventSelector = 22;
+  }
 }
 
 p.mouseClicked = function ()
@@ -414,7 +474,7 @@ p.mouseClicked = function ()
 p.resetEvent = function ()
 {
   eventTimer = 1;
-  eventSelector = p.int(p.random(eventNum));
+  eventSelector = p.int(p.random(1, eventNum));
   lightTimer = 0;
   redAlert = false;
   yellowAlert = false;
@@ -440,10 +500,11 @@ class Particle
     this.pImage = pImage;
     this.rotVal = p.random(-2, 2);
     this.rotChange = p.random(-0.1, 0.5);
-    /*if (this.shape == 3)
+    if (pImage == 2)
     {
-      console.log("A ship was created!");
-    }*/
+      this.rotChange = this.rotChange/10;
+      //this.rotVal = this.rotVal / 10;
+    }
   }
 
   display()
@@ -460,6 +521,7 @@ class Particle
     else if (this.shape == 2)
     {
       p.push();
+      p.ambientLight(this.pRed, this.pGreen, this.pBlue);
       p.translate(this.position.x, this.position.y, this.position.z);
       p.rotate(p.radians(this.rotVal * p.PI));
       if (this.pImage == 1)
@@ -543,7 +605,6 @@ class Particle
     this.position.add(this.speed);
   }
 }
-
 
 }
 
