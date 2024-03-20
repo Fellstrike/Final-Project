@@ -213,6 +213,12 @@ p.draw = function()
   p.push();
   p.shininess(50);
   p.specularMaterial(220);
+  lightTimer++;
+  if (lightTimer >= 30)
+  { 
+    lightTimer = 0;
+    lightFlash = !lightFlash;
+  }
   if(lightFlash)
   {
     if (redAlert)
@@ -221,7 +227,7 @@ p.draw = function()
     }
     else if (yellowAlert)
     {
-      p.ambientLight(253, 255, 58);
+      p.ambientLight(245, 245, 0);
     }
     else if (greenAlert)
     {
@@ -329,41 +335,24 @@ p.eventHandling = function ()
       break;
     case 17:
       //give an announcment or message, then turn off.
-      lightTimer++;
       if (maxIsDetected && !greenAlert)
       {window.max.outlet('Alert', 'Green', 0.5);}
       greenAlert = true;
-      if (lightTimer >= 30)
-      { 
-        lightTimer = 0;
-        lightFlash = !lightFlash;
-      }
+      p.resetEvent();
       break;
     case 18:
       //add a major error and instructins on how to fix it.
-      lightTimer++;
       if (maxIsDetected && !redAlert)
       {window.max.outlet('Alert', 'Red', 1);}
       redAlert = true;
-
-      if (lightTimer >= 30)
-      { 
-        lightTimer = 0;
-        lightFlash = !lightFlash;
-      }
+      p.resetEvent();
       break;
     case 19:
       //add a minor error and instrctions on how to fix it.
-      lightTimer++;
       if (maxIsDetected && !yellowAlert)
       {window.max.outlet('Alert', 'Yellow', 0.75);}
       yellowAlert = true;
-
-      if (lightTimer >= 30)
-      { 
-        lightTimer = 0;
-        lightFlash = !lightFlash;
-      }
+      p.resetEvent();
       break;
     case 20:    //Random Drop
       if (maxIsDetected)
@@ -376,7 +365,7 @@ p.eventHandling = function ()
       break;
     case 22: //footsteps
       footstepPlay = true;
-      maxSteps = p.int(p.random(20, 500));
+      maxSteps = p.int(p.random(2, 20));
       p.resetEvent();
       break;
     case 23:
@@ -423,17 +412,17 @@ p.playStep = function()
 
 p.keyReleased = function()
 {
-  if ((p.key == 'y' || p.key == 'Y') && yellowAlert)
+  if (p.key == 'y' || p.key == 'Y')
   {
-    if (maxIsDetected)
-    {window.max.outlet('Alert', 'none', 0);}
-    p.resetEvent();
+    eventSelector = 19;
   }
-  else if ((p.key == 'g' || p.key == 'G') && greenAlert)
+  else if (p.key == 'g' || p.key == 'G')
   {
-    if (maxIsDetected)
-    {window.max.outlet('Alert', 'none', 0);}
-    p.resetEvent();
+    eventSelector = 17;
+  }
+  else if (p.key == 'r' || p.key == 'R')
+  {
+    eventSelector = 18;
   }
   else if ((p.key == 's' || p.key == 'S'))
   {
@@ -463,11 +452,26 @@ p.keyReleased = function()
 
 p.mouseClicked = function ()
 {
-  if ((eventTimer % eventRate) == 0 && redAlert)
+  if (redAlert)
   {
+    redAlert = !redAlert;
     if (maxIsDetected)
     {window.max.outlet('Alert', 'none', 0);}
-    p.resetEvent();
+    //p.resetEvent();
+  }
+  if (greenAlert)
+  {
+    greenAlert = !greenAlert;
+    if (maxIsDetected)
+    {window.max.outlet('Alert', 'none', 0);}
+    //p.resetEvent();
+  }
+  if (yellowAlert)
+  {
+    yellowAlert = !yellowAlert;
+    if (maxIsDetected)
+    {window.max.outlet('Alert', 'none', 0);}
+    //p.resetEvent();
   }
 }
 
@@ -475,10 +479,11 @@ p.resetEvent = function ()
 {
   eventTimer = 1;
   eventSelector = p.int(p.random(1, eventNum));
+  if ((redAlert || yellowAlert || greenAlert) && (eventSelector == 17 || eventSelector == 18 || eventSelector == 19))
+  {
+    eventSelector = 16;
+  }
   lightTimer = 0;
-  redAlert = false;
-  yellowAlert = false;
-  greenAlert = false;
   lightFlash = false;
 }
 
